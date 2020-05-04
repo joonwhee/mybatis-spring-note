@@ -45,7 +45,7 @@ import java.util.Set;
  *
  * @author Hunter Presnall
  * @author Eduardo Macarron
- * 
+ *
  * @see MapperFactoryBean
  * @since 1.2.0
  */
@@ -72,6 +72,8 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
   private Class<? extends MapperFactoryBean> mapperFactoryBeanClass = MapperFactoryBean.class;
 
   public ClassPathMapperScanner(BeanDefinitionRegistry registry) {
+    // 调用父类ClassPathBeanDefinitionScanner，不使用默认的Filter
+    // 默认的Filter会扫描org.springframework.stereotype.Component、javax.annotation.ManagedBean、javax.inject.Named
     super(registry, false);
   }
 

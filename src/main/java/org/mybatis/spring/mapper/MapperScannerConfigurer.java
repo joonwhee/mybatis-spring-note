@@ -338,6 +338,7 @@ public class MapperScannerConfigurer
       processPropertyPlaceHolders();
     }
 
+    // 1.新建一个ClassPathMapperScanner，并填充相应属性
     ClassPathMapperScanner scanner = new ClassPathMapperScanner(registry);
     scanner.setAddToConfig(this.addToConfig);
     scanner.setAnnotationClass(this.annotationClass);
