@@ -146,12 +146,15 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
     boolean acceptAllInterfaces = true;
 
     // if specified, use the given annotation and / or marker interface
+    // 1.如果指定了注解，则将注解添加到includeFilters
     if (this.annotationClass != null) {
       addIncludeFilter(new AnnotationTypeFilter(this.annotationClass));
       acceptAllInterfaces = false;
     }
 
     // override AssignableTypeFilter to ignore matches on the actual marker interface
+    // 2.如果指定了标记接口，则将标记接口添加到includeFilters，但这边重写了matchClassName方法，并返回了false，
+    // 相当于忽略了标记接口上的匹配项，所以该参数目前相当于没有任何作用
     if (this.markerInterface != null) {
       addIncludeFilter(new AssignableTypeFilter(this.markerInterface) {
         @Override
@@ -162,12 +165,14 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
       acceptAllInterfaces = false;
     }
 
+    // 3.如果没有指定annotationClass和markerInterface，则添加默认的includeFilters，直接返回true，接受所有类
     if (acceptAllInterfaces) {
       // default include filter that accepts all classes
       addIncludeFilter((metadataReader, metadataReaderFactory) -> true);
     }
 
     // exclude package-info.java
+    // 4.添加默认的excludeFilters，排除以package-info结尾的类
     addExcludeFilter((metadataReader, metadataReaderFactory) -> {
       String className = metadataReader.getClassMetadata().getClassName();
       return className.endsWith("package-info");
@@ -180,12 +185,15 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
    */
   @Override
   public Set<BeanDefinitionHolder> doScan(String... basePackages) {
+    // 1.直接使用父类的方法执行扫描
     Set<BeanDefinitionHolder> beanDefinitions = super.doScan(basePackages);
 
     if (beanDefinitions.isEmpty()) {
       LOGGER.warn(() -> "No MyBatis mapper was found in '" + Arrays.toString(basePackages)
           + "' package. Please check your configuration.");
     } else {
+      // 2.对扫描到的beanDefinitions进行处理，主要2件事：
+      // 1）将bean的类型设置为MapperFactoryBean；2）添加sqlSessionFactory或sqlSessionTemplate（优先）属性
       processBeanDefinitions(beanDefinitions);
     }
 
@@ -203,10 +211,13 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
       // the mapper interface is the original class of the bean
       // but, the actual class of the bean is MapperFactoryBean
       definition.getConstructorArgumentValues().addGenericArgumentValue(beanClassName); // issue #59
+      // 1.将beanClass直接设置为MapperFactoryBean.class
       definition.setBeanClass(this.mapperFactoryBeanClass);
 
       definition.getPropertyValues().add("addToConfig", this.addToConfig);
 
+      // 2.添加sqlSessionFactory属性，sqlSessionFactoryBeanName和sqlSessionFactory中，优先使用sqlSessionFactoryBeanName，
+      // RuntimeBeanReference是占位符类，表示sqlSessionFactoryBeanName是引用容器中的另一个bean，在运行时会解析
       boolean explicitFactoryUsed = false;
       if (StringUtils.hasText(this.sqlSessionFactoryBeanName)) {
         definition.getPropertyValues().add("sqlSessionFactory",
@@ -217,6 +228,8 @@ public class ClassPathMapperScanner extends ClassPathBeanDefinitionScanner {
         explicitFactoryUsed = true;
       }
 
+      // 3.添加sqlSessionTemplate属性，同样的，sqlSessionTemplateBeanName优先于sqlSessionTemplate，
+      // 另外如果sqlSessionTemplate和sqlSessionFactory同时存在时，sqlSessionFactory会被忽略
       if (StringUtils.hasText(this.sqlSessionTemplateBeanName)) {
         if (explicitFactoryUsed) {
           LOGGER.warn(
