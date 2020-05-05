@@ -357,7 +357,8 @@ public class MapperScannerConfigurer
     // 3.注册Filter，因为上面构造函数我们没有使用默认的Filter，
     // 有两种Filter，includeFilters：要扫描的；excludeFilters：要排除的
     scanner.registerFilters();
-    // 4.扫描basePackage，basePackage可通过",; \t\n"来填写多个，ClassPathMapperScanner重写了doScan方法
+    // 4.扫描basePackage，basePackage可通过",; \t\n"来填写多个，
+    // ClassPathMapperScanner重写了doScan方法
     scanner.scan(
         StringUtils.tokenizeToStringArray(this.basePackage, ConfigurableApplicationContext.CONFIG_LOCATION_DELIMITERS));
   }

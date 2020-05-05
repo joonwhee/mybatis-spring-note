@@ -486,7 +486,7 @@ public class SqlSessionFactoryBean
     notNull(sqlSessionFactoryBuilder, "Property 'sqlSessionFactoryBuilder' is required");
     state((configuration == null && configLocation == null) || !(configuration != null && configLocation != null),
         "Property 'configuration' and 'configLocation' can not specified with together");
-
+    // 构建sqlSessionFactory
     this.sqlSessionFactory = buildSqlSessionFactory();
   }
 
@@ -503,10 +503,13 @@ public class SqlSessionFactoryBean
    */
   protected SqlSessionFactory buildSqlSessionFactory() throws Exception {
 
+    // 1.定义最终要用来创建SQLSessionFactory的配置变量
     final Configuration targetConfiguration;
 
+    // 2.检查是否已经定义了configuration或者configLocation
     XMLConfigBuilder xmlConfigBuilder = null;
     if (this.configuration != null) {
+      // 2.1 如果已经定义了configuration，则targetConfiguration直接赋值为configuration
       targetConfiguration = this.configuration;
       if (targetConfiguration.getVariables() == null) {
         targetConfiguration.setVariables(this.configurationProperties);
@@ -514,11 +517,13 @@ public class SqlSessionFactoryBean
         targetConfiguration.getVariables().putAll(this.configurationProperties);
       }
     } else if (this.configLocation != null) {
+      // 2.2 如果定义了configLocation，则加载该配置文件，并创建对应的configLocation赋值给targetConfiguration
       xmlConfigBuilder = new XMLConfigBuilder(this.configLocation.getInputStream(), null, this.configurationProperties);
       targetConfiguration = xmlConfigBuilder.getConfiguration();
     } else {
       LOGGER.debug(
           () -> "Property 'configuration' or 'configLocation' not specified, using default MyBatis Configuration");
+      // 2.3 否则使用默认的配置
       targetConfiguration = new Configuration();
       Optional.ofNullable(this.configurationProperties).ifPresent(targetConfiguration::setVariables);
     }
@@ -527,6 +532,7 @@ public class SqlSessionFactoryBean
     Optional.ofNullable(this.objectWrapperFactory).ifPresent(targetConfiguration::setObjectWrapperFactory);
     Optional.ofNullable(this.vfs).ifPresent(targetConfiguration::setVfsImpl);
 
+    // 3.类型别名包，例如：你设置了com.joonwhee.open.po，则在mapper文件中你可以将com.joonwhee.open.po.UserPO简写为UserPO
     if (hasLength(this.typeAliasesPackage)) {
       scanClasses(this.typeAliasesPackage, this.typeAliasesSuperType).stream()
           .filter(clazz -> !clazz.isAnonymousClass()).filter(clazz -> !clazz.isInterface())
@@ -592,10 +598,12 @@ public class SqlSessionFactoryBean
       }
     }
 
+    // 4.使用dataSource和transactionFactory新建Environment，id为SqlSessionFactoryBean
     targetConfiguration.setEnvironment(new Environment(this.environment,
         this.transactionFactory == null ? new SpringManagedTransactionFactory() : this.transactionFactory,
         this.dataSource));
 
+    // 5.mapper处理（最重要）
     if (this.mapperLocations != null) {
       if (this.mapperLocations.length == 0) {
         LOGGER.warn(() -> "Property 'mapperLocations' was specified but matching resources are not found.");
@@ -605,8 +613,10 @@ public class SqlSessionFactoryBean
             continue;
           }
           try {
+            // 5.1 新建XMLMapperBuilder
             XMLMapperBuilder xmlMapperBuilder = new XMLMapperBuilder(mapperLocation.getInputStream(),
                 targetConfiguration, mapperLocation.toString(), targetConfiguration.getSqlFragments());
+            // 5.2 解析mapper文件：1）
             xmlMapperBuilder.parse();
           } catch (Exception e) {
             throw new NestedIOException("Failed to parse mapping resource: '" + mapperLocation + "'", e);
@@ -620,6 +630,7 @@ public class SqlSessionFactoryBean
       LOGGER.debug(() -> "Property 'mapperLocations' was not specified.");
     }
 
+    // 6.使用targetConfiguration构建DefaultSqlSessionFactory
     return this.sqlSessionFactoryBuilder.build(targetConfiguration);
   }
 
@@ -629,6 +640,7 @@ public class SqlSessionFactoryBean
   @Override
   public SqlSessionFactory getObject() throws Exception {
     if (this.sqlSessionFactory == null) {
+      // 如果之前没有构建，则这边也会调用afterPropertiesSet进行构建操作
       afterPropertiesSet();
     }
 

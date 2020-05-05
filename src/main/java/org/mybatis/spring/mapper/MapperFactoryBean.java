@@ -92,6 +92,8 @@ public class MapperFactoryBean<T> extends SqlSessionDaoSupport implements Factor
    */
   @Override
   public T getObject() throws Exception {
+    // 1.从父类中拿到sqlSessionTemplate，这边的sqlSessionTemplate也是doScan中添加的属性
+    // 2.通过mapperInterface获取mapper
     return getSqlSession().getMapper(this.mapperInterface);
   }
 
